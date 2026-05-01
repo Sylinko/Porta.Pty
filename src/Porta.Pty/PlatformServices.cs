@@ -1,7 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Runtime.InteropServices;
+
+#if WINDOWS
 using System.Runtime.Versioning;
+#endif
 
 namespace Porta.Pty;
 
@@ -40,6 +44,41 @@ internal static class PlatformServices
 #endif
     static PlatformServices()
     {
+#if !WINDOWS
+        NativeLibrary.SetDllImportResolver(
+            typeof(PlatformServices).Assembly,
+            (libraryName, _, _) =>
+            {
+                if (libraryName != "libporta_pty") return 0;
+
+                var fullPath = Path.Combine(
+                    AppContext.BaseDirectory,
+                    "runtimes",
+#if MACOS
+                    "osx-" +
+#else
+                    "linux-" +
+#endif
+
+#if ARM64
+                    "arm64"
+#elif X64
+                    "x64"
+#else
+                    #error Unsupported architecture
+#endif
+                    ,
+                    "native",
+#if MACOS
+                    "libporta_pty.dylib"
+#else
+                    "libporta_pty.so"
+#endif
+                    );
+                return File.Exists(fullPath) ? NativeLibrary.Load(fullPath) : IntPtr.Zero;
+            });
+#endif
+
 #if WINDOWS
         PtyProvider = new Windows.PtyProvider();
         EnvironmentVariableComparer = StringComparer.OrdinalIgnoreCase;
