@@ -45,10 +45,10 @@ internal sealed class PseudoConsoleConnection : IPtyConnection
             0, // No buffering - writes go directly to pipe
             false);
 
-        this._handles = handles;
+        _handles = handles;
         Pid = handles.Pid;
         _process = Process.GetProcessById(Pid);
-        _process.Exited += Process_Exited;
+        _process.Exited += HandleProcessExited;
         _process.EnableRaisingEvents = true;
     }
 
@@ -81,7 +81,7 @@ internal sealed class PseudoConsoleConnection : IPtyConnection
         }
 
         // Unsubscribe from events first to prevent callbacks during disposal
-        _process.Exited -= Process_Exited;
+        _process.Exited -= HandleProcessExited;
 
         // ConPTY cleanup order (per Microsoft documentation):
         // 1. Close the PseudoConsole handle - signals conhost to shut down
@@ -145,7 +145,7 @@ internal sealed class PseudoConsoleConnection : IPtyConnection
         return _process.WaitForExit(milliseconds);
     }
 
-    private void Process_Exited(object? sender, EventArgs e)
+    private void HandleProcessExited(object? sender, EventArgs e)
     {
         // Check if we're disposed to avoid raising events during/after disposal
         if (_isDisposed)

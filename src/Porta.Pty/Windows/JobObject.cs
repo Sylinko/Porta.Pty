@@ -29,12 +29,10 @@ internal static class JobObject
     public unsafe static SafeFileHandle Create()
     {
         // Create an anonymous job object
-        SafeFileHandle jobHandle = PInvoke.CreateJobObject(null, null);
+        var jobHandle = PInvoke.CreateJobObject();
         if (jobHandle.IsInvalid)
         {
-            throw new InvalidOperationException(
-                "Failed to create job object",
-                new Win32Exception());
+            throw new InvalidOperationException("Failed to create job object", new Win32Exception(Marshal.GetLastWin32Error()));
         }
 
         // Configure the job to kill all processes when the job handle is closed
@@ -75,9 +73,7 @@ internal static class JobObject
 
         if (!PInvoke.AssignProcessToJobObject((HANDLE)jobHandle.DangerousGetHandle(), processHandle))
         {
-            throw new InvalidOperationException(
-                "Failed to assign process to job object",
-                new Win32Exception());
+            throw new InvalidOperationException("Failed to assign process to job object", new Win32Exception(Marshal.GetLastWin32Error()));
         }
     }
 }

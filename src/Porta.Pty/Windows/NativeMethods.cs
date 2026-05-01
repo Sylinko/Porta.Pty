@@ -35,7 +35,7 @@ internal static partial class NativeMethods
             {
                 throw new InvalidOperationException(
                     $"Couldn't get the size of the process attribute list for {AttributeCount} attributes",
-                    new Win32Exception());
+                    new Win32Exception(Marshal.GetLastWin32Error()));
             }
 
             startupInfo.lpAttributeList = (LPPROC_THREAD_ATTRIBUTE_LIST)Marshal.AllocHGlobal((int)size);
@@ -48,7 +48,7 @@ internal static partial class NativeMethods
             wasInitialized = PInvoke.InitializeProcThreadAttributeList(startupInfo.lpAttributeList, AttributeCount, 0, &size);
             if (!wasInitialized)
             {
-                throw new InvalidOperationException("Couldn't create new process attribute list", new Win32Exception());
+                throw new InvalidOperationException("Couldn't create new process attribute list", new Win32Exception(Marshal.GetLastWin32Error()));
             }
 
             // Set thread attribute list's Pseudo Console to the specified ConPTY
@@ -66,18 +66,17 @@ internal static partial class NativeMethods
 
             if (!wasInitialized)
             {
-                throw new InvalidOperationException("Couldn't update process attribute list", new Win32Exception());
+                throw new InvalidOperationException("Couldn't update process attribute list", new Win32Exception(Marshal.GetLastWin32Error()));
             }
         }
 
         public void FreeAttributeList()
         {
-            if (startupInfo.lpAttributeList != IntPtr.Zero)
-            {
-                PInvoke.DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
-                Marshal.FreeHGlobal(startupInfo.lpAttributeList);
-                startupInfo.lpAttributeList = default;
-            }
+            if (startupInfo.lpAttributeList == IntPtr.Zero) return;
+
+            PInvoke.DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+            Marshal.FreeHGlobal(startupInfo.lpAttributeList);
+            startupInfo.lpAttributeList = default;
         }
     }
 
