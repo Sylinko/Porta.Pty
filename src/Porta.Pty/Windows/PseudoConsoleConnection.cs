@@ -7,7 +7,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using Windows.Win32;
 using Windows.Win32.System.Console;
 using Microsoft.Win32.SafeHandles;
 
@@ -132,7 +131,7 @@ internal sealed class PseudoConsoleConnection : IPtyConnection
         ObjectDisposedException.ThrowIf(handles is null || _isDisposed, nameof(PseudoConsoleConnection));
 
         var coord = new COORD { X = (short)cols, Y = (short)rows };
-        var hr = PInvoke.ResizePseudoConsole(handles.PseudoConsoleHandle, coord);
+        var hr = NativeMethods.ResizePseudoConsole(handles.PseudoConsoleHandle, coord);
         if (hr.Failed)
         {
             throw new InvalidOperationException($"Could not resize pseudo console: {hr}", new Win32Exception(hr));

@@ -205,7 +205,7 @@ internal class PtyProvider : IPtyProvider
             }
 
             // Create the Pseudo Console, using the pipes
-            var hr = PInvoke.CreatePseudoConsole(
+            var hr = NativeMethods.CreatePseudoConsole(
                 new COORD { X = (short)options.Cols, Y = (short)options.Rows },
                 new SafeFileHandle(inPipePseudoConsoleSide.DangerousGetHandle(), false),
                 new SafeFileHandle(outPipePseudoConsoleSide.DangerousGetHandle(), false),

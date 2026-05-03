@@ -3,10 +3,11 @@ SetInformationJobObject
 AssignProcessToJobObject
 InitializeProcThreadAttributeList
 DeleteProcThreadAttributeList
-CreatePseudoConsole
-ResizePseudoConsole
 CreatePipe
 CreateProcess
 
 JOBOBJECT_EXTENDED_LIMIT_INFORMATION
 STARTUPINFOEXW
+HPCON
+COORD
+HRESULT

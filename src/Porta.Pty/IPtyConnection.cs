@@ -8,7 +8,6 @@ namespace Porta.Pty;
 /// </summary>
 public interface IPtyConnection : IDisposable
 {
-
     /// <summary>
     ///     Gets the stream for reading data from the pty.
     /// </summary>
