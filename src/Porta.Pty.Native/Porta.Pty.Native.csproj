@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Porta.Pty.Native</PackageId>
+    <Version>1.0.0</Version>
+    <PackageOutputPath>$(LocalPackageOutputPath)</PackageOutputPath>
+    <PackageDescription>Native runtime libraries for Porta.Pty, providing PTY support on Linux and macOS.</PackageDescription>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <!-- Native runtime libraries for each platform -->
+  <!-- These are built from src/Porta.Pty.Native and placed in the runtimes folder -->
+  <ItemGroup>
+    <None Include="output/runtimes/linux-x64/native/libporta_pty.so"
+          Pack="true"
+          PackagePath="runtimes/linux-x64/native/"
+          Condition="Exists('output/runtimes/linux-x64/native/libporta_pty.so')"/>
+    <None Include="output/runtimes/linux-arm64/native/libporta_pty.so"
+          Pack="true"
+          PackagePath="runtimes/linux-arm64/native/"
+          Condition="Exists('output/runtimes/linux-arm64/native/libporta_pty.so')"/>
+    <None Include="output/runtimes/osx-x64/native/libporta_pty.dylib"
+          Pack="true"
+          PackagePath="runtimes/osx-x64/native/"
+          Condition="Exists('output/runtimes/osx-x64/native/libporta_pty.dylib')"/>
+    <None Include="output/runtimes/osx-arm64/native/libporta_pty.dylib"
+          Pack="true"
+          PackagePath="runtimes/osx-arm64/native/"
+          Condition="Exists('output/runtimes/osx-arm64/native/libporta_pty.dylib')"/>
+  </ItemGroup>
+
+</Project>

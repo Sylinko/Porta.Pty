@@ -23,25 +23,10 @@ public static class PtyProvider
         PtyOptions options,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(options.App))
-        {
-            throw new ArgumentNullException(nameof(options.App));
-        }
-
-        if (string.IsNullOrEmpty(options.Cwd))
-        {
-            throw new ArgumentNullException(nameof(options.Cwd));
-        }
-
-        if (options.CommandLine == null)
-        {
-            throw new ArgumentNullException(nameof(options.CommandLine));
-        }
-
-        if (options.Environment == null)
-        {
-            throw new ArgumentNullException(nameof(options.Environment));
-        }
+        ArgumentException.ThrowIfNullOrEmpty(options.App, nameof(options.App));
+        ArgumentException.ThrowIfNullOrEmpty(options.Cwd, nameof(options.Cwd));
+        ArgumentNullException.ThrowIfNull(options.CommandLine, nameof(options.CommandLine));
+        ArgumentNullException.ThrowIfNull(options.Environment, nameof(options.Environment));
 
         var environment = MergeEnvironment(PlatformServices.PtyEnvironment, null);
         environment = MergeEnvironment(options.Environment, environment);
