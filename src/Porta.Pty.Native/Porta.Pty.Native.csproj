@@ -8,6 +8,9 @@
     <PackageOutputPath>$(LocalPackageOutputPath)</PackageOutputPath>
     <PackageDescription>Native runtime libraries for Porta.Pty, providing PTY support on Linux and macOS.</PackageDescription>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <NoWarn>$(NoWarn);NU5128;NU5127</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
