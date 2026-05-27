@@ -2,10 +2,10 @@
 
   <PropertyGroup>
     <IsPackable>true</IsPackable>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Porta.Pty.Native</PackageId>
     <Version>1.0.0</Version>
-    <PackageOutputPath>$(LocalPackageOutputPath)</PackageOutputPath>
+    <PackageOutputPath Condition="'$(LocalPackageOutputPath)' != ''">$(LocalPackageOutputPath)</PackageOutputPath>
+    <PackageOutputPath Condition="'$(LocalPackageOutputPath)' == ''">$(MSBuildProjectDirectory)\..\..\nuget</PackageOutputPath>
     <PackageDescription>Native runtime libraries for Porta.Pty, providing PTY support on Linux and macOS.</PackageDescription>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <IncludeBuildOutput>false</IncludeBuildOutput>

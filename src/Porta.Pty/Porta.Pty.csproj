@@ -18,23 +18,7 @@
     <AdditionalFiles Include="NativeMethods.txt"/>
   </ItemGroup>
 
-  <Target Name="EnsureNativePackage" BeforeTargets="Restore;CollectPackageReferences">
-    <PropertyGroup>
-      <NativeProjectDir>$(MSBuildThisFileDirectory)..\Porta.Pty.Native\</NativeProjectDir>
-      <NativeProject>$(NativeProjectDir)Porta.Pty.Native.csproj</NativeProject>
-    </PropertyGroup>
-    
-    <Message Text="Ensuring native package is built and available..." Importance="high" />
-    <MSBuild Projects="$(NativeProject)"
-             Targets="Build"
-             Properties="Configuration=$(Configuration)" />
-  </Target>
-
   <ItemGroup>
-    <ProjectReference Include="..\Porta.Pty.Native\Porta.Pty.Native.csproj" ReferenceOutputAssembly="false">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </ProjectReference>
     <PackageReference Include="Porta.Pty.Native"/>
   </ItemGroup>
 </Project>
