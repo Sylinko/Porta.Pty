@@ -31,6 +31,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         # Configure with architecture flag
         cmake -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_OSX_ARCHITECTURES="$ARCH" \
+              -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
               "$SCRIPT_DIR"
         cmake --build . --config Release
         

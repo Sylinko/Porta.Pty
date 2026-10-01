@@ -1,0 +1,153 @@
+name: Release Sylinko NuGet Packages
+
+on:
+  push:
+    tags: ['publish-*']
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  native:
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            platform: linux
+          - runner: macos-14
+            platform: osx
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Linux cross compiler
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+      - name: Build native libraries
+        run: bash src/Porta.Pty.Native/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.platform }}
+          path: src/Porta.Pty.Native/output/runtimes/${{ matrix.platform }}-*/native/*
+          if-no-files-found: error
+
+  package:
+    needs: native
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          path: src/Porta.Pty.Native/output/runtimes
+          merge-multiple: true
+      - name: Resolve package version
+        id: version
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json'; 'X-GitHub-Api-Version' = '2022-11-28' }
+          $run = Invoke-RestMethod "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" -Headers $headers
+          $version = ./scripts/get-package-version.ps1 -RunCreatedAt $run.created_at -RunNumber $env:GITHUB_RUN_NUMBER
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "NuGet package version: **$version** (original run creation date in UTC)." >> $env:GITHUB_STEP_SUMMARY
+      - name: Pack packages
+        shell: pwsh
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $version = $env:PACKAGE_VERSION
+          ./scripts/pack-sylinko.ps1 -Version $version
+      - name: Verify Windows package consumption
+        shell: pwsh
+        run: |
+          dotnet restore tests/PackageSmoke/PackageSmoke.csproj --configfile tests/PackageSmoke/nuget.config -p:PackageVersion=${{ steps.version.outputs.version }}
+          if ($LASTEXITCODE) { throw 'Package smoke restore failed.' }
+          dotnet run --project tests/PackageSmoke/PackageSmoke.csproj -c Release --no-restore -p:PackageVersion=${{ steps.version.outputs.version }}
+          if ($LASTEXITCODE) { throw 'Package smoke failed.' }
+          dotnet publish tests/PackageSmoke/PackageSmoke.csproj -c Release -r win-x64 --self-contained false -o artifacts/smoke --configfile tests/PackageSmoke/nuget.config -p:PackageVersion=${{ steps.version.outputs.version }}
+          if ($LASTEXITCODE) { throw 'RID-specific package smoke publish failed.' }
+          dotnet artifacts/smoke/PackageSmoke.dll
+          if ($LASTEXITCODE) { throw 'RID-specific package smoke failed.' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: artifacts/packages/*.nupkg
+          if-no-files-found: error
+
+  smoke:
+    needs: package
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            rid: linux-x64
+          - runner: ubuntu-22.04-arm
+            rid: linux-arm64
+          - runner: macos-15-intel
+            rid: osx-x64
+          - runner: macos-14
+            rid: osx-arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: artifacts/packages
+      - name: Verify package consumption on this platform
+        shell: pwsh
+        env:
+          PACKAGE_VERSION: ${{ needs.package.outputs.version }}
+        run: |
+          $version = $env:PACKAGE_VERSION
+          dotnet publish tests/PackageSmoke/PackageSmoke.csproj -c Release -r ${{ matrix.rid }} --self-contained false -o artifacts/smoke --configfile tests/PackageSmoke/nuget.config "-p:PackageVersion=$version"
+          if ($LASTEXITCODE) { throw 'RID-specific package smoke publish failed.' }
+          dotnet artifacts/smoke/PackageSmoke.dll
+          if ($LASTEXITCODE) { throw 'RID-specific package smoke failed.' }
+
+  release:
+    needs: [package, smoke]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: artifacts/packages
+      - name: Prevent overwriting published package assets
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: nuget/Porta.Pty/${{ needs.package.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json'; 'X-GitHub-Api-Version' = '2022-11-28' }
+          $tag = [Uri]::EscapeDataString($env:RELEASE_TAG)
+          $release = $null
+          try {
+            $release = Invoke-RestMethod "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/releases/tags/$tag" -Headers $headers
+          }
+          catch {
+            if ([int]$_.Exception.Response.StatusCode -ne 404) { throw }
+          }
+          if ($release.assets.Count -gt 0) { throw 'This release already contains package assets. Start a new workflow run to publish a new version; never overwrite an existing package version.' }
+      - name: Release to Sylinko NuGet feed
+        uses: Sylinko/nuget-feed@v1
+        with:
+          token: ${{ secrets.SYLINKO_NUGET_FEED_TOKEN }}
+          release-tag: nuget/Porta.Pty/${{ needs.package.outputs.version }}
+          artifacts-directory: artifacts/packages

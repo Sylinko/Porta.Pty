@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <RestorePackagesPath>$(MSBuildThisFileDirectory)obj/packages</RestorePackagesPath>
+    <PackageVersion Condition="'$(PackageVersion)' == ''">999.0.0</PackageVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Porta.Pty" Version="[$(PackageVersion)]" />
+  </ItemGroup>
+</Project>

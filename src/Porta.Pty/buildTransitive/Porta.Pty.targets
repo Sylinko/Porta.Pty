@@ -1,0 +1,7 @@
+<Project>
+  <!-- x64 processes can also run on ARM64 Windows. ConPTY starts the native host. -->
+  <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('win-')) Or ('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Windows')))">
+    <None Include="$(MSBuildThisFileDirectory)hosts/x64/OpenConsole.exe" Link="x64/OpenConsole.exe" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="$(MSBuildThisFileDirectory)hosts/arm64/OpenConsole.exe" Link="arm64/OpenConsole.exe" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
