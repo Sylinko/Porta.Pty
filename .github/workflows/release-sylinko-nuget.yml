@@ -23,7 +23,10 @@ jobs:
       - uses: actions/checkout@v6
       - name: Install Linux cross compiler
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+        run: |
+          # Stop on mirror failures instead of installing from stale indexes and retrying every package.
+          sudo apt-get update --error-on=any
+          sudo apt-get install -y gcc-aarch64-linux-gnu
       - name: Build native libraries
         run: bash src/Porta.Pty.Native/build.sh
       - uses: actions/upload-artifact@v7
