@@ -36,10 +36,10 @@
   <!-- Implementations use compile-time OS switches. NuGet selects the RID asset;
        all implementations expose the API in the common reference assembly. -->
   <ItemGroup>
-    <None Include="$(ManagedPackageArtifactsPath)/win/ref/Porta.Pty.dll" Pack="true" PackagePath="ref/net10.0/" />
-    <None Include="$(ManagedPackageArtifactsPath)/win/Porta.Pty.dll" Pack="true" PackagePath="runtimes/win/lib/net10.0/" />
-    <None Include="$(ManagedPackageArtifactsPath)/linux/Porta.Pty.dll" Pack="true" PackagePath="runtimes/linux/lib/net10.0/" />
-    <None Include="$(ManagedPackageArtifactsPath)/osx/Porta.Pty.dll" Pack="true" PackagePath="runtimes/osx/lib/net10.0/" />
+    <None Include="$(ManagedPackageArtifactsPath)/win/ref/Porta.Pty.dll" Pack="true" PackagePath="ref/net11.0/" />
+    <None Include="$(ManagedPackageArtifactsPath)/win/Porta.Pty.dll" Pack="true" PackagePath="runtimes/win/lib/net11.0/" />
+    <None Include="$(ManagedPackageArtifactsPath)/linux/Porta.Pty.dll" Pack="true" PackagePath="runtimes/linux/lib/net11.0/" />
+    <None Include="$(ManagedPackageArtifactsPath)/osx/Porta.Pty.dll" Pack="true" PackagePath="runtimes/osx/lib/net11.0/" />
     <!-- ConPTY's build assets do not flow through a transitive PackageReference.
          Keep its architecture-specific hosts beside conpty.dll in consumer outputs. -->
     <None Include="$(PkgMicrosoft_Windows_Console_ConPTY)/build/native/runtimes/x64/OpenConsole.exe" Pack="true" PackagePath="buildTransitive/hosts/x64/" />

@@ -12,8 +12,8 @@ try {
         if ($LASTEXITCODE) { throw "Managed build failed for $rid." }
         $output = "artifacts/managed/$platform"
         New-Item -ItemType Directory -Force "$output/ref" | Out-Null
-        Copy-Item "src/Porta.Pty/bin/Release/net10.0/$rid/Porta.Pty.dll" $output
-        Copy-Item "src/Porta.Pty/obj/Release/net10.0/$rid/ref/Porta.Pty.dll" "$output/ref"
+        Copy-Item "src/Porta.Pty/bin/Release/net11.0/$rid/Porta.Pty.dll" $output
+        Copy-Item "src/Porta.Pty/obj/Release/net11.0/$rid/ref/Porta.Pty.dll" "$output/ref"
     }
 
     dotnet run --project tools/VerifyManagedApi/VerifyManagedApi.csproj -- artifacts/managed/win/Porta.Pty.dll artifacts/managed/linux/Porta.Pty.dll artifacts/managed/osx/Porta.Pty.dll
