@@ -16,7 +16,7 @@ jobs:
         include:
           - runner: ubuntu-22.04
             platform: linux
-          - runner: macos-14
+          - runner: macos-15
             platform: osx
     runs-on: ${{ matrix.runner }}
     steps:
@@ -26,7 +26,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
       - name: Build native libraries
         run: bash src/Porta.Pty.Native/build.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: native-${{ matrix.platform }}
           path: src/Porta.Pty.Native/output/runtimes/${{ matrix.platform }}-*/native/*
@@ -42,7 +42,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: native-*
           path: src/Porta.Pty.Native/output/runtimes
@@ -77,7 +77,7 @@ jobs:
           if ($LASTEXITCODE) { throw 'RID-specific package smoke publish failed.' }
           dotnet artifacts/smoke/PackageSmoke.dll
           if ($LASTEXITCODE) { throw 'RID-specific package smoke failed.' }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: packages
           path: artifacts/packages/*.nupkg
@@ -94,7 +94,7 @@ jobs:
             rid: linux-arm64
           - runner: macos-15-intel
             rid: osx-x64
-          - runner: macos-14
+          - runner: macos-15
             rid: osx-arm64
     runs-on: ${{ matrix.runner }}
     steps:
@@ -102,7 +102,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: packages
           path: artifacts/packages
@@ -124,7 +124,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: packages
           path: artifacts/packages
