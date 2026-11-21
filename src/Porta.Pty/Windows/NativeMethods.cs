@@ -84,6 +84,10 @@ internal static partial class NativeMethods
         }
     }
 
+    // Use the app-local ConPTY export, not kernel32 (which only added this API in Windows 11 24H2).
+    [DllImport("conpty.dll", ExactSpelling = true), DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
+    internal static extern HRESULT ReleasePseudoConsole(SafeHandle handle);
+
     /// <summary>
     ///     Custom P/Invoke for UpdateProcThreadAttribute.
     ///     Required because Vanara's version doesn't support PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE

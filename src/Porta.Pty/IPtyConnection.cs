@@ -41,6 +41,26 @@ public interface IPtyConnection : IDisposable
     bool WaitForExit(int milliseconds);
 
     /// <summary>
+    /// Observe the root process even after it exits. Cancelling the wait does not kill the process.
+    /// Native implementations can distinguish signals from successful observation of an exit code.
+    /// </summary>
+    async Task<PtyTermination> WaitForTerminationAsync(CancellationToken cancellationToken = default)
+    {
+        var completion = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnExit(object? sender, PtyExitedEventArgs args) => completion.TrySetResult(args.ExitCode);
+        ProcessExited += OnExit;
+        try
+        {
+            var code = WaitForExit(0) ? ExitCode : await completion.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            return new PtyTermination(PtyTerminationKind.Exited, code);
+        }
+        finally
+        {
+            ProcessExited -= OnExit;
+        }
+    }
+
+    /// <summary>
     ///     Immediately terminates the pty process.
     /// </summary>
     void Kill();

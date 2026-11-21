@@ -3,8 +3,8 @@
 
 #if UNIX
 
-using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 
 namespace Porta.Pty.Unix;
 
@@ -14,12 +14,11 @@ namespace Porta.Pty.Unix;
 internal abstract class PtyConnection : IPtyConnection
 {
     private const int EINTR = 4;
-    private const int ECHILD = 10;
     private const int ESRCH = 3;
 
     private readonly int controller;
-    private readonly ManualResetEvent terminalProcessTerminatedEvent = new(false);
-    private int exitSignal;
+    private readonly SafeFileHandle controllerOwner;
+    private readonly TaskCompletionSource<PtyTermination> termination = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool isDisposed;
 
     /// <summary>
@@ -29,6 +28,7 @@ internal abstract class PtyConnection : IPtyConnection
     /// <param name="pid">The id of the spawned process.</param>
     public PtyConnection(int controller, int pid)
     {
+        controllerOwner = new SafeFileHandle(controller, ownsHandle: true);
         ReaderStream = new PtyStream(controller, FileAccess.Read);
         WriterStream = new PtyStream(controller, FileAccess.Write);
 
@@ -73,7 +73,11 @@ internal abstract class PtyConnection : IPtyConnection
         WriterStream?.Dispose();
 
         // Try to kill the process, but don't throw if it already exited
-        TryKill();
+        if (!termination.Task.IsCompleted)
+        {
+            TryKill();
+        }
+        controllerOwner.Dispose();
     }
 
     /// <inheritdoc />
@@ -102,7 +106,7 @@ internal abstract class PtyConnection : IPtyConnection
     /// <inheritdoc />
     public bool WaitForExit(int milliseconds)
     {
-        return terminalProcessTerminatedEvent.WaitOne(milliseconds);
+        return termination.Task.Wait(milliseconds);
     }
 
     /// <summary>
@@ -144,34 +148,40 @@ internal abstract class PtyConnection : IPtyConnection
         }
     }
 
+    /// <inheritdoc />
+    public Task<PtyTermination> WaitForTerminationAsync(CancellationToken cancellationToken = default) =>
+        termination.Task.WaitAsync(cancellationToken);
+
     private void ChildWatcherThreadProc()
     {
-        Debug.WriteLine($"Waiting on {Pid}");
-        const int SignalMask = 127;
-        const int ExitCodeMask = 255;
-
         var status = 0;
-        if (!WaitPid(Pid, ref status))
+        PtyTermination result;
+        while (true)
         {
-            var errno = Marshal.GetLastWin32Error();
-            Debug.WriteLine($"Wait failed with {errno}");
-            if (errno == EINTR)
+            if (WaitPid(Pid, ref status))
             {
-                ChildWatcherThreadProc();
+                // waitpid(options: 0) on Linux and Darwin. Traced stops are not termination.
+                var signal = status & 0x7f;
+                if (signal == 0x7f) continue;
+                result = signal == 0
+                    ? new PtyTermination(PtyTerminationKind.Exited, (status >> 8) & 0xff)
+                    : new PtyTermination(PtyTerminationKind.Signaled, signal);
+                break;
             }
-            else if (errno == ECHILD)
-            {
-                // waitpid is already handled elsewhere.
-                // Not an error.
-            }
-            // TODO: log that waitpid(3) failed with error {Marshal.GetLastWin32Error()}
-            return;
+
+            var error = Marshal.GetLastPInvokeError();
+            if (error == EINTR) continue;
+            result = new PtyTermination(PtyTerminationKind.ObservationFailed, error);
+            break;
         }
 
-        Debug.WriteLine("Wait succeeded");
-        exitSignal = status & SignalMask;
-        ExitCode = exitSignal == 0 ? status >> 8 & ExitCodeMask : 0;
-        terminalProcessTerminatedEvent.Set();
+        ExitCode = result.Kind switch
+        {
+            PtyTerminationKind.Exited => result.Value,
+            PtyTerminationKind.Signaled => 128 + result.Value,
+            _ => -1
+        };
+        termination.SetResult(result);
         ProcessExited?.Invoke(this, new PtyExitedEventArgs(ExitCode));
     }
 }

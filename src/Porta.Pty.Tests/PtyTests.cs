@@ -53,6 +53,24 @@ public class PtyTests
     }
 
     [Test]
+    public async Task Termination_WhenReadAfterExit_PreservesExplicitCode()
+    {
+        using var terminal = await PtyProvider.SpawnAsync(CreateShellCommandOptions("exit-code", "exit 23"), CancellationToken.None);
+        var result = await terminal.WaitForTerminationAsync().WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.That(result, Is.EqualTo(new PtyTermination(PtyTerminationKind.Exited, 23)));
+        Assert.That(await terminal.WaitForTerminationAsync(), Is.EqualTo(result));
+    }
+
+    [Test]
+    public async Task Termination_WhenUnixShellIsSignaled_DistinguishesSignalFromExit()
+    {
+        if (IsWindows) Assert.Ignore("POSIX wait status");
+        using var terminal = await PtyProvider.SpawnAsync(CreateShellCommandOptions("signal", "kill -TERM $$"), CancellationToken.None);
+        var result = await terminal.WaitForTerminationAsync().WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.That(result, Is.EqualTo(new PtyTermination(PtyTerminationKind.Signaled, 15)));
+    }
+
+    [Test]
     public async Task EchoTest_ReturnsExpectedOutput()
     {
         using var cts = new CancellationTokenSource(TestTimeoutMs);
@@ -219,7 +237,7 @@ public class PtyTests
     }
 
     [Test]
-    public void SpawnAsync_ThrowsOnEmptyApp()
+    public async Task SpawnAsync_ThrowsOnEmptyApp()
     {
         var options = new PtyOptions
         {
@@ -229,11 +247,11 @@ public class PtyTests
             Environment = new Dictionary<string, string>(),
         };
 
-        Assert.ThrowsAsync<ArgumentNullException>(() => PtyProvider.SpawnAsync(options, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => PtyProvider.SpawnAsync(options, CancellationToken.None));
     }
 
     [Test]
-    public void SpawnAsync_ThrowsOnEmptyCwd()
+    public async Task SpawnAsync_ThrowsOnEmptyCwd()
     {
         var options = new PtyOptions
         {
@@ -243,11 +261,11 @@ public class PtyTests
             Environment = new Dictionary<string, string>(),
         };
 
-        Assert.ThrowsAsync<ArgumentNullException>(() => PtyProvider.SpawnAsync(options, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => PtyProvider.SpawnAsync(options, CancellationToken.None));
     }
 
     [Test]
-    public void SpawnAsync_ThrowsOnNullCommandLine()
+    public async Task SpawnAsync_ThrowsOnNullCommandLine()
     {
         var options = new PtyOptions
         {
@@ -257,11 +275,11 @@ public class PtyTests
             Environment = new Dictionary<string, string>(),
         };
 
-        Assert.ThrowsAsync<ArgumentNullException>(() => PtyProvider.SpawnAsync(options, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => PtyProvider.SpawnAsync(options, CancellationToken.None));
     }
 
     [Test]
-    public void SpawnAsync_ThrowsOnNullEnvironment()
+    public async Task SpawnAsync_ThrowsOnNullEnvironment()
     {
         var options = new PtyOptions
         {
@@ -271,7 +289,7 @@ public class PtyTests
             Environment = null!,
         };
 
-        Assert.ThrowsAsync<ArgumentNullException>(() => PtyProvider.SpawnAsync(options, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => PtyProvider.SpawnAsync(options, CancellationToken.None));
     }
 
     [Test] [Ignore("Not reliable on CI server")]

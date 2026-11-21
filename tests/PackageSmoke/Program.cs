@@ -34,4 +34,25 @@ if (!hasExited || connection.ExitCode != 0)
     throw new InvalidOperationException($"The packaged PTY implementation could not run a shell successfully: exited={hasExited}, exit code={connection.ExitCode}.");
 }
 
+if (OperatingSystem.IsWindows())
+{
+    // Keeping the connection open for display must not keep the console output pipe alive.
+    await connection.ReaderStream.CopyToAsync(Stream.Null).WaitAsync(TimeSpan.FromSeconds(10));
+}
+
+if (!OperatingSystem.IsWindows())
+{
+    using var signaled = await PtyProvider.SpawnAsync(new PtyOptions
+    {
+        App = "/bin/sh",
+        CommandLine = ["-c", "kill -TERM $$"],
+        Cwd = AppContext.BaseDirectory,
+    }, CancellationToken.None);
+    var termination = await signaled.WaitForTerminationAsync().WaitAsync(TimeSpan.FromSeconds(10));
+    if (termination != new PtyTermination(PtyTerminationKind.Signaled, 15))
+    {
+        throw new InvalidOperationException($"Lost native wait status: {termination}.");
+    }
+}
+
 Console.WriteLine($"Package smoke passed: {platform}, process {connection.Pid}.");

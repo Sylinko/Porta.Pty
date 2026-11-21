@@ -305,6 +305,10 @@ internal class PtyProvider : IPtyProvider
                     throw new InvalidOperationException($"Could not start terminal process {commandLine}: {exception.Message}", exception);
                 }
 
+                // Drop the host reference only after the client attaches. The output pipe then reaches
+                // EOF after the last attached client exits, without prematurely closing the reader.
+                NativeMethods.ReleasePseudoConsole(pseudoConsoleHandle).ThrowOnFailure();
+
                 var connectionOptions = new PseudoConsoleConnection.PseudoConsoleConnectionHandles(
                     inPipeOurSide,
                     outPipeOurSide,
